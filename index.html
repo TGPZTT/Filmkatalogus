@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Film Katalógus</title>
+    <title>Film Katalógus v2</title>
     <!-- Tailwind CSS betöltése -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide ikonok (JAVÍTVA) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <!-- Inter betűtípus -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #020617; /* slate-950 */
+            color: #f1f5f9; /* slate-100 */
         }
         /* Rejtett fájl bemenet */
         #load-input {
@@ -19,44 +23,55 @@
         /* Egyedi scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
+            height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #1f2937; /* gray-800 */
+            background: #0f172a; /* slate-900 */
         }
         ::-webkit-scrollbar-thumb {
-            background: #374151; /* gray-700 */
+            background: #334155; /* slate-700 */
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #4b5563; /* gray-600 */
+            background: #475569; /* slate-600 */
         }
-        /* Csillag értékelő hover effektus */
-        .rating-stars:hover .rating-star svg {
-            color: #9ca3af; /* gray-400 */
+        /* Csillag értékelő (MODÁLBAN) hover effektus */
+        .modal-rating-stars:hover .modal-rating-star svg {
+            color: #64748b; /* slate-500 */
         }
-        .rating-star:hover ~ .rating-star svg {
-            color: #4b5563; /* gray-600 */
+/* ... (Ezt a részt átnevezzük és módosítjuk) ... */
+        .modal-rating-star:hover ~ .modal-rating-star svg {
+            color: #334155; /* slate-700 */
         }
-        .rating-stars .rating-star:hover svg {
+        .modal-rating-stars .modal-rating-star:hover svg {
              color: #f59e0b; /* yellow-500 */
         }
-        /* Címke (tag) stílusok */
-        .tag-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
-            min-height: 28px; /* Hogy ne ugráljon a layout, ha nincs tag */
+
+        /* ÚJ: Interaktív csillagok a kártyán (átvéve a modál stílusából) */
+        .interactive-rating-stars:hover .rating-star svg {
+            color: #64748b; /* slate-500 */
         }
+        .rating-star:hover ~ .rating-star svg {
+            color: #334155; /* slate-700 */
+        }
+        .interactive-rating-stars .rating-star:hover svg {
+             color: #f59e0b; /* yellow-500 */
+        }
+
+        /* Címke (tag) stílusok */
         .tag-badge {
             display: inline-flex;
             align-items: center;
-            background-color: #374151; /* gray-700 */
-            color: #d1d5db; /* gray-300 */
+            background-color: #334155; /* slate-700 */
+            color: #e2e8f0; /* slate-200 */
             font-size: 0.8rem;
             font-weight: 500;
             border-radius: 9999px;
-            padding: 3px 6px 3px 10px;
+            padding: 3px 10px;
+        }
+        .tag-badge-interactive {
+             padding: 3px 6px 3px 10px;
+             background-color: #475569; /* slate-600 */
         }
         .remove-tag-btn {
             display: flex;
@@ -65,8 +80,8 @@
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background-color: #4b5563; /* gray-600 */
-            color: #d1d5db; /* gray-300 */
+            background-color: #334155; /* slate-700 */
+            color: #e2e8f0; /* slate-200 */
             margin-left: 6px;
             border: none;
             cursor: pointer;
@@ -84,16 +99,21 @@
         }
         .tag-input {
             flex-grow: 1;
-            background-color: #4b5563; /* gray-600 */
-            border: 1px solid #52525b; /* gray-500 */
+            background-color: #1e293b; /* slate-800 */
+            border: 1px solid #475569; /* slate-600 */
             color: white;
             border-radius: 6px;
-            padding: 5px 8px;
+            padding: 8px 10px;
             font-size: 0.9rem;
             min-width: 0;
+            outline: none;
+        }
+        .tag-input:focus {
+            border-color: #2563eb; /* blue-600 */
+            box-shadow: 0 0 0 2px #1e40af; /* blue-800 */
         }
         .add-tag-btn {
-            background-color: #1d4ed8; /* blue-700 */
+            background-color: #2563eb; /* blue-600 */
             color: white;
             border: none;
             border-radius: 6px;
@@ -101,96 +121,157 @@
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .add-tag-btn:hover {
-            background-color: #1e40af; /* blue-800 */
+            background-color: #1d4ed8; /* blue-700 */
+        }
+
+        /* Ikonok inicializálása */
+        /* Lucide betöltés után fut le */
+        body.lucide-loaded [data-lucide] {
+            display: inline-block;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 antialiased min-h-screen">
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
 
     <div class="container mx-auto max-w-7xl p-4 sm:p-8">
         
-        <!-- Címsor -->
-        <header class="text-center mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+        <!-- Címsor és Vezérlőpult -->
+        <header class="mb-10 p-5 sm:p-6 bg-slate-900 rounded-2xl shadow-xl border border-slate-800">
+            <h1 class="text-4xl sm:text-5xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
                 Film Katalógus
             </h1>
-        </header>
 
-        <main>
-            <!-- Vezérlőpult: Keresés, Mentés, Betöltés -->
-            <section id="controls" class="mb-8 p-6 bg-gray-800 rounded-2xl shadow-xl">
-                <div class="flex flex-col sm:flex-row flex-wrap gap-4 justify-between items-center">
-                    <!-- Keresőmező (Helyi katalógusban) -->
-                    <div class="w-full sm:w-auto sm:flex-1 sm:min-w-[300px]">
-                        <label for="search-box" class="block text-sm font-medium text-gray-300 mb-2">Keresés a saját katalógusban</label>
+            <!-- Új film keresése (OMDB) -->
+            <form id="search-omdb-form" class="grid grid-cols-1 md:grid-cols-4 gap-5 items-end mb-6">
+                <div class="md:col-span-3">
+                    <label for="search-term-input" class="block text-sm font-medium text-slate-300 mb-2">Új Film Keresése (OMDB)</label>
+                    <input type="text" id="search-term-input" required placeholder="Keresés cím vagy IMDB ID alapján (pl. tt0133093)..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                </div>
+                <div class="md:col-span-1 text-center">
+                    <button type="submit" id="search-omdb-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 min-h-[50px]">
+                        <span id="search-btn-text">Keresés</span>
+                        <!-- Spinner SVG eltávolítva -->
+                        <i data-lucide="search" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </form>
+
+            <hr class="border-slate-700/60 my-6">
+
+            <!-- Helyi keresés és Fájlkezelés -->
+            <div class="flex flex-col sm:flex-row flex-wrap gap-4 justify-between items-center">
+                <!-- Keresőmező (Helyi katalógusban) -->
+                <div class="w-full sm:w-auto sm:flex-1 sm:min-w-[300px]">
+                    <label for="search-box" class="block text-sm font-medium text-slate-300 mb-2">Keresés a saját katalógusban</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </span>
                         <input 
                             type="search" 
                             id="search-box"
                             placeholder="Keresés a filmcímek között..."
-                            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                         />
                     </div>
-                    <!-- Gombok -->
-                    <div class="flex gap-3 mt-4 sm:mt-0 self-end">
-                        <button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-5 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
-                            Mentés (.csv)
+                </div>
+                <!-- Gombok -->
+                <div class="flex gap-3 mt-4 sm:mt-0 self-stretch sm:self-end">
+                    <button id="save-btn" class="flex-1 sm:flex-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-5 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
+                        <i data-lucide="save" class="w-5 h-5"></i>
+                        Mentés
+                    </button>
+                    <button id="load-btn" class="flex-1 sm:flex-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-5 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
+                        <i data-lucide="folder-open" class="w-5 h-5"></i>
+                        Betöltés
+                    </button>
+                    <input type="file" id="load-input" accept=".csv">
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- ÚJ: Szűrő sáv (Státusz és Címkék) - Feljebb hozva a main-en kívülre -->
+            <section id="filter-controls" class="mb-8 p-4 bg-slate-900 rounded-2xl shadow-xl border border-slate-800">
+                <div class="flex flex-col md:flex-row gap-4 items-end">
+                    <!-- Státusz szűrő -->
+                    <div class="w-full md:w-auto">
+                        <!-- Label törölve -->
+                        <div id="view-filter-controls" class="flex rounded-lg bg-slate-800 border border-slate-700 p-1">
+                            <button 
+                                data-filter="all"
+                                class="view-filter-btn flex-1 px-3 py-1 text-sm font-semibold rounded-md transition-colors bg-blue-600 text-white"
+                            >
+                                <!-- Ikon eltávolítva -->
+                                Mind
+                            </button>
+                            <button 
+                                data-filter="seen"
+                                class="view-filter-btn flex-1 px-3 py-1 text-sm font-semibold rounded-md transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700"
+                            >
+                                <!-- Ikon eltávolítva -->
+                                Láttam
+                            </button>
+                            <button 
+                                data-filter="unseen"
+                                class="view-filter-btn flex-1 px-3 py-1 text-sm font-semibold rounded-md transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700"
+                            >
+                                <!-- Ikon eltávolítva -->
+                                Megnézendő
+                            </button>
+                        </div>
+                    </div>
+    
+                    <!-- Címke szűrő -->
+                    <div class="w-full md:flex-1">
+                        <!-- Label törölve -->
+                        <select id="tag-filter-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                            <option value="all">Minden címke</option>
+                            <!-- JS tölti fel -->
+                        </select>
+                    </div>
+    
+                    <!-- ÚJ: Gemini Ajánló Gomb -->
+                    <div class="w-full md:w-auto">
+                        <button id="recommendation-btn" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium py-1 px-4 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 text-sm">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                            <!-- Emoji eltávolítva -->
+                            Ajánlj filmet!
                         </button>
-                        <button id="load-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-5 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
-                            Betöltés (.csv)
-                        </button>
-                        <input type="file" id="load-input" accept=".csv">
                     </div>
                 </div>
-            </section>
-
-            <!-- Film keresése (OMDB) űrlap -->
-            <section id="add-movie-section" class="mb-10 p-6 bg-gray-800 rounded-2xl shadow-xl">
-                <h2 class="text-2xl font-bold mb-6 text-center sm:text-left">Új Film Keresése Cím Alapján</h2>
-                <form id="search-omdb-form" class="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
-                    <div class="md:col-span-3">
-                        <label for="search-term-input" class="block text-sm font-medium text-gray-300 mb-2">Film Címe</label>
-                        <input type="text" id="search-term-input" required placeholder="Pl: The Matrix, Inception, stb." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="md:col-span-1 text-center">
-                        <button type="submit" id="search-omdb-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-10 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200 flex items-center justify-center min-h-[50px]">
-                            <span id="search-btn-text">Keresés</span>
-                            <svg id="search-btn-spinner" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </form>
             </section>
 
             <!-- Film Katalógus Rács -->
             <section id="movie-catalog">
-                <h2 class="text-3xl font-bold mb-6 border-b border-gray-700 pb-3">Saját Katalógus</h2>
+                <h2 class="text-3xl font-bold mb-6 border-b border-slate-700 pb-3">Saját Katalógus</h2>
                 <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     <!-- A film kártyák ide kerülnek beillesztésre JS-sel -->
                 </div>
-                <p id="no-results" class="text-center text-gray-400 text-xl mt-10 hidden">Nincs a keresésnek megfelelő találat.</p>
-                <p id="empty-catalog" class="text-center text-gray-400 text-xl mt-10 hidden">A katalógus még üres. Keress filmeket a fenti űrlappal!</p>
+                <p id="no-results" class="text-center text-slate-400 text-xl mt-10 hidden">Nincs a keresésnek megfelelő találat.</p>
+                <p id="empty-catalog" class="text-center text-slate-400 text-xl mt-10 hidden">A katalógus még üres. Keress filmeket a fenti űrlappal!</p>
             </section>
-
         </main>
 
         <!-- Egyedi üzenet ablak (alert helyett) -->
-        <div id="message-box" class="fixed bottom-5 right-5 bg-red-600 text-white py-3 px-5 rounded-lg shadow-lg opacity-0 transition-all duration-300 translate-y-10 z-50">
+        <div id="message-box" class="fixed bottom-5 right-5 bg-red-600 text-white py-3 px-5 rounded-lg shadow-lg opacity-0 transition-all duration-300 translate-y-10 z-50 flex items-center gap-3">
+            <i id="message-icon-error" data-lucide="alert-triangle" class="w-5 h-5"></i>
+            <i id="message-icon-success" data-lucide="check-circle" class="w-5 h-5 hidden"></i>
             <span id="message-text"></span>
         </div>
 
-        <!-- Keresési Eredmények Modál -->
-        <div id="search-modal" class="fixed inset-0 bg-black bg-opacity-75 z-40 hidden flex items-center justify-center p-4">
-            <div class="bg-gray-800 w-full max-w-5xl max-h-[85vh] rounded-2xl shadow-xl flex flex-col">
-                <header class="p-5 flex justify-between items-center border-b border-gray-700">
+        <!-- Keresési Eredmények Modál (OMDB) -->
+        <div id="search-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden items-center justify-center p-4 transition-opacity duration-300">
+            <div class="bg-slate-900 w-full max-w-5xl max-h-[85vh] rounded-2xl shadow-xl flex flex-col border border-slate-700">
+                <header class="p-5 flex justify-between items-center border-b border-slate-700">
                     <h2 class="text-2xl font-bold">Keresési Eredmények</h2>
-                    <button id="close-modal-btn" class="text-gray-400 hover:text-white transition-colors duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                    <button id="close-modal-btn" class="text-slate-400 hover:text-white transition-colors duration-200 rounded-full p-1 hover:bg-slate-700">
+                        <i data-lucide="x" class="w-8 h-8"></i>
                     </button>
                 </header>
                 <div id="search-results-wrapper" class="p-6 overflow-y-auto">
@@ -204,12 +285,40 @@
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                 </div>
-                <div id="search-no-results" class="p-10 text-center text-gray-400 text-xl hidden">
+                <div id="search-no-results" class="p-10 text-center text-slate-400 text-xl hidden">
                     Nincs találat erre a kifejezésre.
                 </div>
             </div>
         </div>
 
+        <!-- TÖRÖLVE: Film Szerkesztése Modál -->
+        <!-- <div id="edit-modal" ... (az egész modál törölve) ... </div> -->
+
+        <!-- ÚJ: Gemini Ajánló Modál -->
+        <div id="recommendation-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden items-center justify-center p-4 transition-opacity duration-300">
+            <div class="bg-slate-900 w-full max-w-lg rounded-2xl shadow-xl flex flex-col border border-slate-700">
+                <header class="p-5 flex justify-between items-center border-b border-slate-700">
+                    <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">✨ Személyes ajánlás</h2>
+                    <button id="close-recommendation-modal-btn" class="text-slate-400 hover:text-white transition-colors duration-200 rounded-full p-1 hover:bg-slate-700">
+                        <i data-lucide="x" class="w-8 h-8"></i>
+                    </button>
+                </header>
+                <div class="p-6 overflow-y-auto min-h-[200px] flex items-center justify-center">
+                    <!-- Töltő -->
+                    <div id="recommendation-loading" class="text-center hidden">
+                        <svg class="animate-spin h-10 w-10 text-purple-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="mt-4 text-slate-300">Gondolkodom az ízléseden...</p>
+                    </div>
+                    <!-- Tartalom -->
+                    <div id="recommendation-content" class="text-slate-200 leading-relaxed">
+                        <!-- Az ajánlás ide jön -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Globális Datalist az autokiegészítéshez -->
@@ -217,14 +326,14 @@
         <!-- JS tölti fel -->
     </datalist>
 
-    <script>
+        <script>
         document.addEventListener('DOMContentLoaded', () => {
             // === DOM Elemek ===
             const searchOmdbForm = document.getElementById('search-omdb-form');
             const searchTermInput = document.getElementById('search-term-input');
             const searchOmdbBtn = document.getElementById('search-omdb-btn');
             const searchBtnText = document.getElementById('search-btn-text');
-            const searchBtnSpinner = document.getElementById('search-btn-spinner');
+            // const searchBtnSpinner = document.getElementById('search-btn-spinner'); // Eltávolítva
             
             const catalogGrid = document.getElementById('catalog-grid');
             const searchBox = document.getElementById('search-box'); // Helyi kereső
@@ -237,9 +346,11 @@
             const emptyCatalogMsg = document.getElementById('empty-catalog');
             
             const messageBox = document.getElementById('message-box');
-            const messageText = document.getElementById('message-text');
+            const messageText = document.getElementById('message-text'); // HIÁNYZOTT
+            const messageIconError = document.getElementById('message-icon-error'); // HIÁNYZOTT
+            const messageIconSuccess = document.getElementById('message-icon-success'); // HIÁNYZOTT
 
-            // Modál elemek
+            // Modál elemek (OMDB) - HIÁNYOZTAK
             const searchModal = document.getElementById('search-modal');
             const closeModalBtn = document.getElementById('close-modal-btn');
             const searchResultsWrapper = document.getElementById('search-results-wrapper');
@@ -247,12 +358,41 @@
             const searchLoading = document.getElementById('search-loading');
             const searchNoResults = document.getElementById('search-no-results');
 
+            // ÚJ: Szűrő elemek
+            const tagFilterSelect = document.getElementById('tag-filter-select');
+            const viewFilterControls = document.getElementById('view-filter-controls');
+            const viewFilterButtons = viewFilterControls.querySelectorAll('.view-filter-btn');
+
+            // ÚJ: Gemini Ajánló Elemek
+            const recommendationBtn = document.getElementById('recommendation-btn');
+            const recommendationModal = document.getElementById('recommendation-modal');
+            const closeRecommendationModalBtn = document.getElementById('close-recommendation-modal-btn');
+            const recommendationLoading = document.getElementById('recommendation-loading');
+            const recommendationContent = document.getElementById('recommendation-content');
+
+
             // === Alkalmazás állapota (State) ===
             let movies = [];
-            let allTags = []; // ÚJ: Globális címke lista
+            let allTags = [];
             const OMDB_API_KEY = '7f4955d5'; // Felhasználó által biztosított kulcs
 
+            // ÚJ: Szűrési állapot
+            let currentTagFilter = 'all';
+            let currentViewFilter = 'all';
+
             // === FUNKCIÓK ===
+
+            /**
+             * Lucide ikonok inicializálása
+             */
+            function initIcons() {
+                if (window.lucide) {
+                    lucide.createIcons();
+                    document.body.classList.add('lucide-loaded');
+                }
+            }
+
+            // --- VISSZAÁLLÍTOTT ALAP FUNKCIÓK ---
 
             /**
              * Egyedi üzenet megjelenítése (alert helyett)
@@ -260,26 +400,30 @@
             function showMessage(message, type = 'error') {
                 messageText.textContent = message;
                 messageBox.classList.remove('bg-red-600', 'bg-green-600');
-                
+                messageIconError.classList.add('hidden');
+                messageIconSuccess.classList.add('hidden');
+
                 if (type === 'success') {
                     messageBox.classList.add('bg-green-600');
+                    messageIconSuccess.classList.remove('hidden');
                 } else {
                     messageBox.classList.add('bg-red-600');
+                    messageIconError.classList.remove('hidden');
                 }
 
                 messageBox.classList.remove('opacity-0', 'translate-y-10');
-                
+                initIcons(); // Frissítjük az ikonokat az üzenetben
+
                 setTimeout(() => {
                     messageBox.classList.add('opacity-0', 'translate-y-10');
-                }, 3000); // 3 másodperc múlva eltűnik
+                }, 3000);
             }
 
             /**
              * A filmek tömb alapján újrarendereli a *saját* katalógus nézetet.
-             * @param {Array} movieList - A megjelenítendő filmek listája (alapértelmezetten a teljes lista).
              */
             function renderMovies(movieList = movies) {
-                catalogGrid.innerHTML = ''; // Rács kiürítése
+                catalogGrid.innerHTML = '';
                 noResultsMsg.classList.add('hidden');
                 emptyCatalogMsg.classList.add('hidden');
 
@@ -294,10 +438,10 @@
                 }
 
                 movieList.forEach(movie => {
-                    // Csillagok generálása az értékelés alapján
+                    // Csillagok generálása
                     let starsHTML = '';
                     for (let i = 1; i <= 5; i++) {
-                        const starClass = movie.userRating >= i ? 'text-yellow-400' : 'text-gray-600';
+                        const starClass = movie.userRating >= i ? 'text-yellow-400' : 'text-slate-600';
                         starsHTML += `
                             <svg data-value="${i}" class="rating-star w-6 h-6 cursor-pointer ${starClass} hover:text-yellow-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
@@ -305,12 +449,12 @@
                         `;
                     }
 
-                    // ÚJ: Címkék generálása
+                    // Címkék generálása
                     let tagsHTML = '';
-                    if (movie.tags) {
+                    if (movie.tags && movie.tags.length > 0) {
                         movie.tags.forEach(tag => {
                             tagsHTML += `
-                                <span class="tag-badge">
+                                <span class="tag-badge tag-badge-interactive">
                                     ${tag}
                                     <button 
                                         class="remove-tag-btn" 
@@ -323,55 +467,52 @@
                                 </span>
                             `;
                         });
+                    } else {
+                        tagsHTML = '<span class="text-sm text-slate-500 italic">Nincsenek címkék</span>';
                     }
 
+                    // A film kártya HTML
                     const movieCard = `
-                        <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 group relative flex flex-col">
-                            <!-- Törlés gomb -->
-                            <button 
-                                data-id="${movie.id}" 
-                                class="delete-btn absolute top-3 right-3 bg-red-600 text-white rounded-full p-0 w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 hover:bg-red-700 transform hover:scale-110"
-                                title="Film törlése"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                            
-                            <!-- Kép -->
-                            <img 
-                                src="${movie.poster}" 
-                                alt="${movie.title} poszter" 
-                                class="w-full h-80 object-cover group-hover:opacity-75 transition-opacity duration-300"
-                                onerror="this.onerror=null; this.src='https://placehold.co/400x600/374151/9ca3af?text=Kép\\nHiba'; this.classList.add('object-contain');"
-                            >
-                            
-                            <!-- Tartalom -->
+                        <div class="bg-slate-900 rounded-lg shadow-lg overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 group relative flex flex-col border border-slate-800">
+                            <div class="relative w-full aspect-[2/3] bg-slate-800">
+                                <img 
+                                    src="${movie.poster}" 
+                                    alt="${movie.title} poszter" 
+                                    class="w-full h-full object-cover"
+                                    onerror="this.onerror=null; this.src='https://placehold.co/400x600/334155/94a3b8?text=Kép\\nHiba'; this.classList.add('object-contain');"
+                                >
+                                <div class="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                                    <button 
+                                        data-id="${movie.id}" 
+                                        class="delete-btn bg-red-600 text-white rounded-full p-0 w-8 h-8 flex items-center justify-center hover:bg-red-700 transform hover:scale-110 transition-all"
+                                        title="Film törlése"
+                                    >
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
                             <div class="p-4 flex flex-col flex-grow">
-                                <h3 class="text-xl font-bold mb-2 truncate flex-grow" title="${movie.title}">${movie.title}</h3>
-                                
-                                <!-- Értékelés -->
-                                <div class="rating-stars flex items-center my-3" data-id="${movie.id}">
+                                <h3 class="text-lg font-bold mb-2 truncate" title="${movie.title}">${movie.title}</h3>
+                                <div class="interactive-rating-stars flex items-center my-2" data-id="${movie.id}" title="Saját értékelés: ${movie.userRating}/5">
                                     ${starsHTML}
                                 </div>
-
-                                <!-- ÚJ: Címke szekció -->
-                                <div class="tag-container mb-4">
+                                <div class="flex flex-wrap gap-1.5 mt-2 mb-4 min-h-[28px]">
                                     ${tagsHTML}
                                 </div>
                                 <form class="add-tag-form mb-4" data-id="${movie.id}">
                                     <input type="text" list="all-tags-list" class="tag-input" placeholder="Címke hozzáadása...">
-                                    <button type="submit" class="add-tag-btn" title="Hozzáadás">+</button>
+                                    <button type="submit" class="add-tag-btn" title="Hozzáadás">
+                                        <i data-lucide="plus" class="w-5 h-5"></i>
+                                    </button>
                                 </form>
-
                                 ${movie.imdb ? `
                                 <a 
                                     href="${movie.imdb}" 
                                     target="_blank" 
                                     rel="noopener noreferrer" 
-                                    class="inline-block bg-yellow-500 text-gray-900 text-sm font-semibold px-3 py-1 rounded-full hover:bg-yellow-400 transition-colors duration-200 self-start"
+                                    class="inline-block bg-yellow-500 text-gray-900 text-sm font-semibold px-3 py-1 rounded-full hover:bg-yellow-400 transition-colors duration-200 self-start mt-auto"
                                 >
-                                    Megtekintés IMDB-n
+                                    IMDB
                                 </a>
                                 ` : ''}
                             </div>
@@ -379,6 +520,7 @@
                     `;
                     catalogGrid.innerHTML += movieCard;
                 });
+                initIcons(); // Ikonok frissítése a kártyákon
             }
 
             /**
@@ -386,7 +528,7 @@
              */
             function saveToLocalStorage() {
                 localStorage.setItem('movieCatalog', JSON.stringify(movies));
-                localStorage.setItem('movieTags', JSON.stringify(allTags)); // ÚJ: Címkék mentése
+                localStorage.setItem('movieTags', JSON.stringify(allTags));
             }
 
             /**
@@ -396,18 +538,11 @@
                 const savedMovies = localStorage.getItem('movieCatalog');
                 if (savedMovies) {
                     movies = JSON.parse(savedMovies);
-                    // Biztosítjuk, hogy a régi mentések is kapjanak userRating és tags mezőt
                     movies.forEach(m => {
-                        if (m.userRating === undefined) {
-                            m.userRating = 0;
-                        }
-                        if (m.tags === undefined) { // ÚJ
-                            m.tags = [];
-                        }
+                        if (m.userRating === undefined) m.userRating = 0;
+                        if (m.tags === undefined) m.tags = [];
                     });
                 }
-
-                // ÚJ: Címkék betöltése
                 const savedTags = localStorage.getItem('movieTags');
                 if (savedTags) {
                     allTags = JSON.parse(savedTags);
@@ -415,7 +550,7 @@
             }
 
             /**
-             * ÚJ: Frissíti a globális <datalist>-et az autokiegészítéshez
+             * Frissíti a globális <datalist>-et az autokiegészítéshez
              */
             function updateAllTagsDatalist() {
                 const datalist = document.getElementById('all-tags-list');
@@ -428,17 +563,31 @@
             }
 
             /**
-             * Keresés gomb és spinner állapotának kezelése
+             * Frissíti a címke szűrő lenyílót
+             */
+            function updateTagFilterDropdown() {
+                const selectedValue = tagFilterSelect.value;
+                tagFilterSelect.innerHTML = '<option value="all">Minden címke</option>';
+                allTags.forEach(tag => {
+                    tagFilterSelect.innerHTML += `<option value="${tag}">${tag}</option>`;
+                });
+                // Próbáljuk visszaállítani a kiválasztott értéket, ha még létezik a listában
+                tagFilterSelect.value = allTags.includes(selectedValue) ? selectedValue : 'all';
+            }
+
+            /**
+             * Keresés gomb állapotának kezelése (spinner nélkül)
              */
             function setSearchButtonLoading(isLoading) {
+                const icon = searchOmdbBtn.querySelector('[data-lucide="search"]');
                 if (isLoading) {
                     searchOmdbBtn.disabled = true;
                     searchBtnText.classList.add('hidden');
-                    searchBtnSpinner.classList.remove('hidden');
+                    if(icon) icon.classList.add('hidden');
                 } else {
                     searchOmdbBtn.disabled = false;
                     searchBtnText.classList.remove('hidden');
-                    searchBtnSpinner.classList.add('hidden');
+                    if(icon) icon.classList.remove('hidden');
                 }
             }
 
@@ -469,7 +618,7 @@
                     // Keresés IMDB ID alapján (egy film)
                     apiUrl = `https://www.omdbapi.com/?i=${searchTerm}&apikey=${OMDB_API_KEY}`;
                 } else {
-                    // Keresés cím alapján (lista) - KIVETTÜK A &type=movie MEGKÖTÉST
+                    // Keresés cím alapján (lista)
                     apiUrl = `https://www.omdbapi.com/?s=${searchTerm}&apikey=${OMDB_API_KEY}`;
                 }
 
@@ -480,7 +629,6 @@
                     if (data.Response === "True") {
                         if (imdbIdPattern.test(searchTerm)) {
                             // ID keresés egyetlen objektumot ad vissza.
-                            // A renderSearchResults tömböt vár, ezért tömbbe csomagoljuk.
                             renderSearchResults([data]);
                         } else {
                             // Cím keresés listát ad (data.Search)
@@ -497,6 +645,7 @@
                 } finally {
                     setSearchButtonLoading(false);
                     searchLoading.classList.add('hidden');
+                    initIcons(); // Modál ikonjainak frissítése
                 }
             }
             
@@ -510,28 +659,30 @@
                     const alreadyAdded = movies.some(m => m.imdb && m.imdb.includes(result.imdbID));
                     
                     const card = `
-                        <div class="bg-gray-700 rounded-lg shadow-lg overflow-hidden flex flex-col">
+                        <div class="bg-slate-800 rounded-lg shadow-lg overflow-hidden flex flex-col border border-slate-700">
                             <img 
                                 src="${result.Poster}" 
                                 alt="${result.Title} poszter" 
-                                class="w-full h-64 object-cover"
-                                onerror="this.onerror=null; this.src='https://placehold.co/300x450/374151/9ca3af?text=Nincs\\nPoszter'; this.classList.add('object-contain');"
+                                class="w-full h-80 object-cover"
+                                onerror="this.onerror=null; this.src='https://placehold.co/300x450/334155/94a3b8?text=Nincs\\nPoszter'; this.classList.add('object-contain');"
                             >
                             <div class="p-4 flex flex-col flex-grow">
                                 <h3 class="text-lg font-bold mb-1 truncate flex-grow" title="${result.Title}">${result.Title}</h3>
-                                <p class="text-sm text-gray-400 mb-4">${result.Year}</p>
+                                <p class="text-sm text-slate-400 mb-4">${result.Year}</p>
                                 <button 
-                                    class="add-from-search-btn w-full mt-auto px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${alreadyAdded ? 'bg-green-600 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}"
+                                    class="add-from-search-btn w-full mt-auto px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${alreadyAdded ? 'bg-green-600 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}"
                                     data-imdbid="${result.imdbID}"
                                     ${alreadyAdded ? 'disabled' : ''}
                                 >
-                                    ${alreadyAdded ? 'Hozzáadva' : 'Hozzáadás a listához'}
+                                    <i data-lucide="${alreadyAdded ? 'check' : 'plus'}" class="w-4 h-4"></i>
+                                    ${alreadyAdded ? 'Hozzáadva' : 'Hozzáadás'}
                                 </button>
                             </div>
                         </div>
                     `;
                     searchResultsGrid.innerHTML += card;
                 });
+                initIcons(); // Gombok ikonjainak frissítése
             }
 
             /**
@@ -542,12 +693,14 @@
                 if (!btn) return;
 
                 btn.disabled = true;
-                btn.textContent = 'Hozzáadás...';
+                btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Hozzáadás...';
+                initIcons();
                 const imdbID = btn.dataset.imdbid;
 
-                // Ellenőrzés (bár a gomb már disabled, dupla kattintás ellen jó)
+                // Ellenőrzés (dupla kattintás ellen)
                 if (movies.some(m => m.imdb && m.imdb.includes(imdbID))) {
-                    btn.textContent = 'Hozzáadva';
+                    btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Hozzáadva';
+                    initIcons();
                     return;
                 }
 
@@ -557,74 +710,42 @@
                     const data = await response.json();
 
                     if (data.Response === "False") {
-                        showMessage(`Hiba: ${data.Error || 'Ismeretlen hiba az API-tól.'}`);
+                        showMessage(`Hiba: ${data.Error || 'Ismeretlen hiba.'}`);
                         btn.disabled = false;
-                        btn.textContent = 'Hozzáadás a listához';
+                        btn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i> Hozzáadás';
+                        initIcons();
                         return;
                     }
 
                     const newMovie = {
-                        id: crypto.randomUUID(), // Egyedi azonosító
+                        id: crypto.randomUUID(),
                         title: data.Title,
                         imdb: `https://www.imdb.com/title/${data.imdbID}/`,
                         poster: data.Poster,
-                        userRating: 0, // Alapértelmezett értékelés
-                        tags: [] // ÚJ: Üres címke lista
+                        userRating: 0,
+                        tags: []
                     };
 
                     movies.unshift(newMovie); // Hozzáadás a tömb elejére
                     saveToLocalStorage();
-                    renderMovies(getFilteredMovies()); // Fő rács frissítése
+                    updateCatalogView(); // Fő rács frissítése
                     showMessage('Film sikeresen hozzáadva!', 'success');
-                    btn.textContent = 'Hozzáadva';
+                    btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Hozzáadva';
+                    initIcons();
 
                 } catch (error) {
                     console.error("OMDB Hozzáadási Hiba:", error);
                     showMessage('Hiba történt a film hozzáadása közben.');
                     btn.disabled = false;
-                    btn.textContent = 'Hozzáadás a listához';
+                    btn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i> Hozzáadás';
+                    initIcons();
                 }
             }
             
             /**
-             * ÚJ: Címke hozzáadása egy filmhez
+             * OMDB Modál bezárása.
              */
-            function handleAddTag(movieId, tagName) {
-                const movie = movies.find(m => m.id === movieId);
-                if (movie && !movie.tags.includes(tagName)) {
-                    movie.tags.push(tagName);
-                    movie.tags.sort(); // ABC sorrendbe rendezés
-
-                    // Hozzáadás a globális listához, ha még nincs benne
-                    if (!allTags.includes(tagName)) {
-                        allTags.push(tagName);
-                        allTags.sort();
-                        updateAllTagsDatalist(); // Autokiegészítő frissítése
-                    }
-                    
-                    saveToLocalStorage();
-                    renderMovies(getFilteredMovies()); // Teljes újrarajzolás
-                }
-            }
-
-            /**
-             * ÚJ: Címke eltávolítása egy filmről
-             */
-            function handleRemoveTag(movieId, tagName) {
-                const movie = movies.find(m => m.id === movieId);
-                if (movie) {
-                    movie.tags = movie.tags.filter(t => t !== tagName);
-                    saveToLocalStorage();
-                    renderMovies(getFilteredMovies()); // Teljes újrarajzolás
-                    // Megjegyzés: a globális 'allTags' listából szándékosan nem töröljük.
-                }
-            }
-
-
-            /**
-             * Modál bezárása.
-             */
-            function closeModal() {
+            function closeSearchModal() {
                 searchModal.classList.add('hidden');
                 searchModal.classList.remove('flex');
             }
@@ -635,30 +756,11 @@
             function deleteMovie(id) {
                 movies = movies.filter(movie => movie.id !== id);
                 saveToLocalStorage();
-                renderMovies(getFilteredMovies()); // Újrarenderelés a szűrt lista alapján
+                updateCatalogView();
                 showMessage('Film törölve.', 'success');
                 // Frissítjük a modál gombjait, ha nyitva van
                 updateModalButtons();
             }
-            /**
- * ÚJ: Felhasználói értékelés kezelése (csillagozás)
- * @param {string} movieId - A film azonosítója
- * @param {number} ratingValue - Az új értékelés (1–5)
- */
-function handleRatingClick(movieId, ratingValue) {
-    const movie = movies.find(m => m.id === movieId);
-    if (!movie) return;
-
-    // Értékelés mentése
-    movie.userRating = ratingValue;
-
-    // Állapot mentése és újrarenderelés
-    saveToLocalStorage();
-    renderMovies(getFilteredMovies());
-
-    // Visszajelzés
-    showMessage(`Értékelés mentve: ${ratingValue} ⭐`, 'success');
-}
 
             /**
              * Frissíti a modálban lévő gombok állapotát (pl. törlés után)
@@ -670,42 +772,48 @@ function handleRatingClick(movieId, ratingValue) {
                     const alreadyAdded = movies.some(m => m.imdb && m.imdb.includes(imdbID));
                     if (alreadyAdded) {
                         btn.disabled = true;
-                        btn.textContent = 'Hozzáadva';
+                        btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Hozzáadva';
                         btn.classList.add('bg-green-600', 'cursor-not-allowed');
                         btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                     } else {
                         btn.disabled = false;
-                        btn.textContent = 'Hozzáadás a listához';
+                        btn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i> Hozzáadás';
                         btn.classList.remove('bg-green-600', 'cursor-not-allowed');
                         btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                     }
                 });
+                initIcons(); // Gomb ikonok frissítése
             }
 
             /**
-             * Visszaadja a *helyi* keresőmező alapján szűrt filmek listáját.
+             * Visszaadja a szűrt filmek listáját.
              */
             function getFilteredMovies() {
                 const searchTerm = searchBox.value.toLowerCase();
-                return movies.filter(movie => 
-                    movie.title.toLowerCase().includes(searchTerm)
-                );
+                // Szűrés mindhárom állapot alapján
+                return movies.filter(movie => {
+                    const titleMatch = movie.title.toLowerCase().includes(searchTerm);
+                    
+                    const tagMatch = (currentTagFilter === 'all') || (movie.tags && movie.tags.includes(currentTagFilter));
+                    
+                    const viewMatch = (currentViewFilter === 'all') ||
+                                      (currentViewFilter === 'seen' && movie.userRating > 0) ||
+                                      (currentViewFilter === 'unseen' && movie.userRating === 0);
+                    
+                    return titleMatch && tagMatch && viewMatch;
+                });
             }
 
             /**
-             * Helyi keresőmező eseménykezelője.
+             * Általános nézet frissítő (keresés/szűrés).
              */
-            function handleLocalSearch() {
+            function updateCatalogView() {
                 renderMovies(getFilteredMovies());
             }
 
-            /**
-             * Egy stringet CSV-biztossá tesz.
-             */
+            // --- Fájlkezelés ---
             function escapeCSV(str) {
-                if (str === null || str === undefined) {
-                    str = "";
-                }
+                if (str === null || str === undefined) str = "";
                 str = String(str);
                 if (str.includes(',') || str.includes('"') || str.includes('\n')) {
                     return `"${str.replace(/"/g, '""')}"`;
@@ -713,24 +821,21 @@ function handleRatingClick(movieId, ratingValue) {
                 return str;
             }
 
-            /**
-             * Katalógus mentése .csv fájlba (értékeléssel együtt).
-             */
             function saveCatalogToFile() {
                 if (movies.length === 0) {
                     showMessage('Nincs mit menteni, a katalógus üres!');
                     return;
                 }
                 
-                const header = "id,title,imdb,poster,userRating,tags\n"; // Új mező: tags
+                const header = "id,title,imdb,poster,userRating,tags\n";
                 const rows = movies.map(m => {
                     return [
                         escapeCSV(m.id),
                         escapeCSV(m.title),
                         escapeCSV(m.imdb),
                         escapeCSV(m.poster),
-                        escapeCSV(m.userRating), // Értékelés mentése
-                        escapeCSV(m.tags ? m.tags.join('|') : "") // ÚJ: Címkék mentése | elválasztóval
+                        escapeCSV(m.userRating),
+                        escapeCSV(m.tags ? m.tags.join('|') : "")
                     ].join(',');
                 }).join('\n');
 
@@ -745,20 +850,13 @@ function handleRatingClick(movieId, ratingValue) {
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-
                 showMessage('Katalógus sikeresen mentve (.csv)!', 'success');
             }
 
-            /**
-             * A "Betöltés" gomb eseménykezelője.
-             */
             function triggerLoadFile() {
                 loadInput.click();
             }
 
-            /**
-             * CSV sor felbontása.
-             */
             function parseCSVLine(line) {
                 const values = [];
                 let current = '';
@@ -791,9 +889,6 @@ function handleRatingClick(movieId, ratingValue) {
                 });
             }
 
-            /**
-             * Fájl betöltésének eseménykezelője (értékeléssel).
-             */
             function handleFileLoad(e) {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -816,8 +911,8 @@ function handleRatingClick(movieId, ratingValue) {
                         const titleIndex = headers.indexOf('title');
                         const imdbIndex = headers.indexOf('imdb');
                         const posterIndex = headers.indexOf('poster');
-                        const userRatingIndex = headers.indexOf('userrating'); // Új mező
-                        const tagsIndex = headers.indexOf('tags'); // ÚJ
+                        const userRatingIndex = headers.indexOf('userrating');
+                        const tagsIndex = headers.indexOf('tags');
 
                         if (idIndex === -1 || titleIndex === -1 || imdbIndex === -1 || posterIndex === -1) {
                             showMessage('A CSV fejléc hiányos. Kötelező oszlopok: id, title, imdb, poster');
@@ -836,9 +931,7 @@ function handleRatingClick(movieId, ratingValue) {
                                     title: values[titleIndex],
                                     imdb: values[imdbIndex],
                                     poster: values[posterIndex],
-                                    // Értékelés beolvasása, ha létezik, egyébként 0
                                     userRating: userRatingIndex > -1 ? (parseInt(values[userRatingIndex], 10) || 0) : 0,
-                                    // ÚJ: Címkék beolvasása
                                     tags: tagsIndex > -1 && values[tagsIndex] ? values[tagsIndex].split('|').filter(t => t.length > 0) : []
                                 };
                                 if (movie.id && movie.title && movie.poster) {
@@ -847,18 +940,18 @@ function handleRatingClick(movieId, ratingValue) {
                             }
                         }
                         
-                        // ÚJ: Globális címkelista frissítése az importált adatokból
                         const importedTags = new Set(allTags);
                         importedMovies.forEach(m => {
                             m.tags.forEach(t => importedTags.add(t));
                         });
                         allTags = Array.from(importedTags).sort();
-                        updateAllTagsDatalist(); // Autokiegészítő frissítése
+                        updateAllTagsDatalist();
+                        updateTagFilterDropdown(); 
 
                         movies = importedMovies;
-                        saveToLocalStorage(); // Mentjük az importált filmeket ÉS a frissített címkelistát
-                        renderMovies();
-                        searchBox.value = ''; // Kereső ürítése
+                        saveToLocalStorage();
+                        updateCatalogView(); 
+                        searchBox.value = '';
                         showMessage(`Katalógus sikeresen betöltve! (${importedMovies.length} film importálva)`, 'success');
                         
                     } catch (error) {
@@ -872,46 +965,231 @@ function handleRatingClick(movieId, ratingValue) {
                 e.target.value = null;
             }
 
+            // --- Kártyán belüli szerkesztő funkciók ---
+            function handleRatingClick(movieId, ratingValue) {
+                const movie = movies.find(m => m.id === movieId);
+                if (!movie) return;
+
+                // Ha ugyanarra a csillagra kattint, nullázza
+                if (movie.userRating === ratingValue) {
+                    movie.userRating = 0; 
+                } else {
+                    movie.userRating = ratingValue;
+                }
+
+                saveToLocalStorage();
+                updateCatalogView();
+                showMessage(`Értékelés mentve: ${movie.userRating} ⭐`, 'success');
+            }
+
+            function handleAddTag(movieId, tagName) {
+                const movie = movies.find(m => m.id === movieId);
+                if (movie && !movie.tags.includes(tagName)) {
+                    movie.tags.push(tagName);
+                    movie.tags.sort();
+
+                    if (!allTags.includes(tagName)) {
+                        allTags.push(tagName);
+                        allTags.sort();
+                        updateAllTagsDatalist();
+                        updateTagFilterDropdown(); // Frissítjük a szűrőt is
+                    }
+                    
+                    saveToLocalStorage();
+                    updateCatalogView();
+                }
+            }
+
+            function handleRemoveTag(movieId, tagName) {
+                const movie = movies.find(m => m.id === movieId);
+                if (movie) {
+                    movie.tags = movie.tags.filter(t => t !== tagName);
+                    saveToLocalStorage();
+                    updateCatalogView();
+                }
+            }
+            
+            // --- Szűrő eseménykezelők ---
+            function handleTagFilterChange() {
+                currentTagFilter = tagFilterSelect.value;
+                updateCatalogView();
+            }
+
+            function handleViewFilterClick(e) {
+                const btn = e.target.closest('.view-filter-btn');
+                if (!btn) return;
+
+                currentViewFilter = btn.dataset.filter;
+
+                // Gombok stílusának frissítése
+                viewFilterButtons.forEach(b => {
+                    b.classList.remove('bg-blue-600', 'text-white');
+                    b.classList.add('bg-slate-800', 'text-slate-300', 'hover:bg-slate-700');
+                });
+                btn.classList.add('bg-blue-600', 'text-white');
+                btn.classList.remove('bg-slate-800', 'text-slate-300', 'hover:bg-slate-700');
+
+                updateCatalogView();
+            }
+
+            // --- ÚJ: Gemini API Hívás és Kezelés ---
+
+            /**
+             * Általános fetch hívás újrapróbálkozással (exponential backoff)
+             */
+            async function retryFetch(url, options, retries = 3, delay = 1000) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        // Csak 429 (Túl sok kérés) vagy 5xx (Szerverhiba) esetén próbáljuk újra
+                        if ((response.status === 429 || response.status >= 500) && retries > 0) {
+                            // Ne logoljuk konzolra az újrapróbálkozást (az utasítás szerint)
+                            await new Promise(res => setTimeout(res, delay));
+                            return retryFetch(url, options, retries - 1, delay * 2);
+                        } else {
+                            // Egyéb kliens oldali hibáknál (pl. 400 Bad Request) ne próbálkozzunk újra
+                            throw new Error(`API hiba ${response.status}: ${response.statusText}`);
+                        }
+                    }
+                    return response.json();
+                } catch (error) {
+                    // Hálózati hiba vagy egyéb fetch hiba esetén is újrapróbálkozás
+                    if (retries > 0) {
+                        await new Promise(res => setTimeout(res, delay));
+                        return retryFetch(url, options, retries - 1, delay * 2);
+                    } else {
+                        // Ha elfogytak az újrapróbálkozások, dobjuk a hibát
+                        console.error("API hívás végleg sikertelen:", error);
+                        throw error;
+                    }
+                }
+            }
+
+
+            /**
+             * Gemini API hívása
+             * @param {string} systemPrompt - A rendszerüzenet (persona)
+             * @param {string} userQuery - A felhasználói kérés
+             * @returns {Promise<string>} A generált szöveg
+             */
+            async function callGeminiAPI(systemPrompt, userQuery) {
+                const apiKey = ""; // Az utasításoknak megfelelően üresen hagyva
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: {
+                        parts: [{ text: systemPrompt }]
+                    },
+                };
+
+                const options = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                };
+
+                // A retryFetch már JSON-t ad vissza
+                const result = await retryFetch(apiUrl, options);
+                
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) {
+                    throw new Error("Érvénytelen API válaszstruktúra.");
+                }
+                return text;
+            }
+
+            /**
+             * Ajánló gomb kattintásának kezelője
+             */
+            async function handleRecommendationClick() {
+                // 1. Modál megnyitása és töltő mutatása
+                recommendationModal.classList.remove('hidden');
+                recommendationModal.classList.add('flex');
+                recommendationContent.innerHTML = '';
+                recommendationLoading.classList.remove('hidden');
+                initIcons(); // Modál ikonjainak frissítése
+
+                // 2. Értékelt filmek gyűjtése
+                const seenMovies = movies.filter(m => m.userRating > 0);
+
+                if (seenMovies.length < 3) {
+                    recommendationContent.innerHTML = 'Nincs elég adatod! Adj értékelést legalább 3 filmnek, hogy személyre szabott ajánlást kaphass.';
+                    recommendationLoading.classList.add('hidden');
+                    return;
+                }
+
+                // 3. Prompt összeállítása
+                const movieListString = seenMovies.map(m => `${m.title} (${m.userRating}/5 csillag)`).join(', ');
+                
+                const systemPrompt = "Te egy filmkritikus és ajánló szakértő vagy. A felhasználó elküldi a kedvenc filmjeinek listáját és azok értékelését. A te feladatod, hogy ez alapján ajánlj neki EGYETLEN új filmet. Az ajánlásnak tartalmaznia kell a film címét (magyarul és angolul is), a megjelenési évét, és 1-2 mondatos, meggyőző indoklást, hogy miért tetszene neki az eddigi ízlése alapján. Kizárólag magyar nyelven válaszolj. Ne írj semmilyen üdvözlést vagy elköszönést, csak a filmcím, év és az indoklás szerepeljen.";
+                
+                const userQuery = `Az én listám: ${movieListString}. EZEK ALAPJÁN ajánlj nekem egy új filmet.`;
+
+                try {
+                    // 4. API hívás
+                    const recommendationText = await callGeminiAPI(systemPrompt, userQuery);
+
+                    // 5. Eredmény megjelenítése (formázva)
+                    recommendationContent.innerHTML = recommendationText
+                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-purple-300">$1</strong>') // Félkövér kiemelés
+                        .replace(/\n/g, '<br>'); // Sortörések
+                    
+                } catch (error) {
+                    console.error("Gemini hiba:", error);
+                    recommendationContent.innerHTML = '<span class="text-red-400">Hiba történt az ajánlás kérése közben. Kérlek, próbáld újra később.</span>';
+                } finally {
+                    // 6. Töltő elrejtése
+                    recommendationLoading.classList.add('hidden');
+                }
+            }
+
+            /**
+             * Ajánló modál bezárása
+             */
+            function closeRecommendationModal() {
+                recommendationModal.classList.add('hidden');
+                recommendationModal.classList.remove('flex');
+                recommendationLoading.classList.add('hidden');
+                recommendationContent.innerHTML = '';
+            }
+
             // === ESEMÉNYKEZELŐK RÁKÖTÉSE ===
 
             // Keresés az OMDB-n
             searchOmdbForm.addEventListener('submit', handleOMDBSearch);
 
-            // Modál bezárása
-            closeModalBtn.addEventListener('click', closeModal);
+            // OMDB Modál bezárása
+            closeModalBtn.addEventListener('click', closeSearchModal);
             searchModal.addEventListener('click', (e) => {
-                // Bezárás, ha a háttérre kattint
-                if (e.target === searchModal) {
-                    closeModal();
-                }
+                if (e.target === searchModal) closeSearchModal();
             });
 
             // Hozzáadás a modálból
             searchResultsGrid.addEventListener('click', handleAddFromSearch);
             
             // Keresés a *helyi* katalógusban
-            searchBox.addEventListener('input', handleLocalSearch);
+            searchBox.addEventListener('input', updateCatalogView);
 
-            // Törlés VAGY Értékelés a *saját* katalógusból (Event Delegation)
+            // Törlés VAGY Szerkesztés a *saját* katalógusból (Event Delegation)
             catalogGrid.addEventListener('click', (e) => {
                 const deleteBtn = e.target.closest('.delete-btn');
                 const ratingStar = e.target.closest('.rating-star');
-                const removeTagBtn = e.target.closest('.remove-tag-btn'); // ÚJ
+                const removeTagBtn = e.target.closest('.remove-tag-btn');
 
                 if (deleteBtn) {
                     const id = deleteBtn.dataset.id;
                     deleteMovie(id);
-                    return; // Megállunk, hogy ne triggerelje a csillagot
+                    return;
                 }
-
+                
                 if (ratingStar) {
                     const id = ratingStar.parentElement.dataset.id;
                     const ratingValue = parseInt(ratingStar.dataset.value, 10);
                     handleRatingClick(id, ratingValue);
-                    return; // ÚJ
+                    return;
                 }
 
-                // ÚJ: Címke eltávolítása
                 if (removeTagBtn) {
                     const movieId = removeTagBtn.dataset.movieId;
                     const tagName = removeTagBtn.dataset.tagName;
@@ -920,41 +1198,50 @@ function handleRatingClick(movieId, ratingValue) {
                 }
             });
 
-            // ÚJ: Címke hozzáadása (submit esemény a formon)
+            // ÚJ: Címke hozzáadása űrlap kezelése (kártyán belül)
             catalogGrid.addEventListener('submit', (e) => {
                 const addTagForm = e.target.closest('.add-tag-form');
                 if (addTagForm) {
-                    e.preventDefault(); // Alapértelmezett űrlapküldés megállítása
+                    e.preventDefault();
                     const movieId = addTagForm.dataset.id;
                     const input = addTagForm.querySelector('.tag-input');
                     const tagName = input.value.trim();
                     
                     if (tagName) {
                         handleAddTag(movieId, tagName);
-                        input.value = ''; // Mező kiürítése
+                        input.value = '';
                     }
                 }
             });
 
-            // Mentés gomb
+            // Fájlkezelő gombok
             saveBtn.addEventListener('click', saveCatalogToFile);
-
-            // Betöltés gomb
             loadBtn.addEventListener('click', triggerLoadFile);
-
-            // Fájl kiválasztása
             loadInput.addEventListener('change', handleFileLoad);
+            
+            // ÚJ: Szűrők eseménykezelői
+            tagFilterSelect.addEventListener('change', handleTagFilterChange);
+            viewFilterControls.addEventListener('click', handleViewFilterClick);
+
+            // ÚJ: Gemini Ajánló eseménykezelői
+            recommendationBtn.addEventListener('click', handleRecommendationClick);
+            closeRecommendationModalBtn.addEventListener('click', closeRecommendationModal);
+            recommendationModal.addEventListener('click', (e) => {
+                if (e.target === recommendationModal) closeRecommendationModal();
+            });
+
 
             // === INICIALIZÁLÁS ===
             loadFromLocalStorage();
-            updateAllTagsDatalist(); // ÚJ: Autokiegészítő feltöltése indításkor
-            renderMovies();
+            updateAllTagsDatalist();
+            updateTagFilterDropdown(); // ÚJ
+            updateCatalogView(); // renderMovies() helyett
+            initIcons(); // Legelső ikon inicializálás
         });
     </script>
 
 </body>
 </html>
-
 
 
 
